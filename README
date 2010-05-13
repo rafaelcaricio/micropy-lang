@@ -1,19 +1,23 @@
 ﻿Micropy Language
 ================
 
-É a implementação de um micro-subset da linguagem Python para aprendizado de conceitos de compiladores. Admito que o código não está muito bem organizado e que precisa de muitas melhorias 
-até pra ser usado como referência para outros projetos. Estou disponibilizando o código para vocês analisarem e, talvez, poderem melhora-lo. 
+É a implementação de um micro-subset da linguagem Python para aprendizado de conceitos de compiladores. Admito 
+que o código não está muito bem organizado e que precisa de muitas melhorias até pra ser usado como referência 
+para outros projetos. Estou disponibilizando o código para vocês analisarem e, talvez, poderem melhora-lo. 
 
-A idéia do projeto é criar um compilador/tradutor de um micro-subset de Python para a linguagem CIL ( http://en.wikipedia.org/wiki/Common_Intermediate_Language ) do MS Visual Studio. Para depois
-ser possível a compilação para código para um executável.
+A idéia do projeto é criar um compilador/tradutor de um micro-subset de Python para a linguagem CIL 
+( http://en.wikipedia.org/wiki/Common_Intermediate_Language ) do MS Visual Studio. Para depois ser possível a 
+compilação para código para um executável.
 
 Limitações:
 -----------
 
- * Só é possível executar em ambiente Windows (talvez em outras platatormas com se realizar-mos algumas alterações).
+ * Só é possível executar em ambiente Windows (talvez em outras platatormas com se realizar-mos algumas 
+   alterações).
 
 Uma lista mental rápida de melhorias:
 -------------------------------------
 
- * Desacoplar a implementação do gerador de código em CIL do parser criando classes intermédiarias que façam a tradução do código posteriormente.
+ * Desacoplar a implementação do gerador de código em CIL do parser criando classes intermédiarias que façam a 
+   tradução do código posteriormente.
  * ...
