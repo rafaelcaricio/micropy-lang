@@ -1,0 +1,9 @@
+.DS_Store
+*.py[co]
+*.tmproj
+*~
+*.swp*
+*.cache
+*.il
+mpython_grm_gramtab.py
+mpython_lex_lextab.py

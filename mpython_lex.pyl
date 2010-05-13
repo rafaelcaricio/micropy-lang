@@ -1,0 +1,295 @@
+# -----------------------------------------------------------------------------
+# mpython.pyl
+#
+#  Definicoes do analizador lexico
+# -----------------------------------------------------------------------------
+
+code :
+
+        def indentlevel(strr) :
+            global lineno
+            col = 0
+            for ch in strr :
+                if ch == '\t' :
+                    raise Exception("Indetation error under line %s!" % lineno)
+                else:
+                    col += 1
+            return col
+
+        lineno = 0
+        curindent = [0]
+        
+        # Definicao dos Tokens
+        TK_INDENT = "TK_INDENT"
+        TK_DENDENT = "TK_DENDENT"
+        TK_IDENTIFICADOR = "TK_IDENTIFICADOR"
+        TK_STRING_PEQ_DUL = "TK_STRING_PEQ_DUL"
+        TK_STRING_PEQ_SIM = "TK_STRING_PEQ_SIM"
+        TK_INTEIRO = "TK_INTEIRO"
+        TK_NEWLINE = "TK_NEWLINE"
+        TK_ASPDUL = "TK_ASPDUL"
+        TK_ASPSIM = "TK_ASPSIM"
+
+
+definitions :
+    NAME	    "[[:lower:]]([[:lower:]]|_)*"
+    INTEIRO	    "[[:digit:]]+"
+    IDENTIFIER      "([[:alpha:]]|_)([[:alnum:]]|_)*"
+    WS              "[[:blank:]]+"
+    NOTWS           "[^[:blank:]\n]+"
+    COMENTARIO      "#[^\n]*"
+
+NAOIDENTADO:
+
+    # Indica o inicio de um bloco e libera a identacao adicionando
+    # o numero -1 ao topo da pilha de identacao.
+    ":{WS}?{COMENTARIO}?\n" :
+                     global lineno, curindent
+                     lineno += 1
+                     # PUSH na pilha de identacao autorizando o inicio
+                     # de um novo bloco.
+                     curindent.append(-1)
+                     #print TK_INDENT, "nivel 0 =================="
+                     self.PUSHSTATE(IDENTADO)
+                     self.value = ""
+                     print TK_INDENT
+                     return TK_INDENT
+
+    "^{WS}+":
+                     global lineno
+                     raise "Erro de identacao na linha %s!" % lineno
+                     return
+
+IDENTADO:
+
+    # Indica o inicio de um bloco e libera a identacao adicionando
+    # o numero -1 ao topo da pilha de identacao.
+    ":{WS}?{COMENTARIO}?\n" :
+                     global lineno, curindent
+                     lineno += 1
+                     # PUSH na pilha de identacao autorizando o inicio
+                     # de um novo bloco.
+                     curindent.append(-1)
+                     print TK_INDENT
+                     return TK_INDENT
+
+    "^{WS}" :
+                     global curindent
+                     cnt = indentlevel(self.value)
+                     # se a identacao esta liberada adiciona um novo bloco
+                     if curindent[-1] == -1:
+                         # o padrao da definicao de blocos eh 4 espacos
+                         # caso seja diferente disso um ERRO deverah ser
+                         # apresentado.
+                         if cnt != (curindent[-2] + 4):
+                             global lineno
+                             raise Exception("Erro de identacao na linha %s!" % lineno)
+                         else:
+                             curindent[-1] = cnt
+                     # se o nivel de identacao eh maior que a identacao atual
+                     # levanta um erro pois nao foi liberado o inicio do bloco.
+                     elif cnt > curindent[-1]:
+                         raise Exception("Erro de identacao na linha %s" % lineno)
+                     # se a identacao eh menor que a identacao atual desidenta o
+                     # indicando o fim do bloco ateh a identacao achada.
+                     if cnt < curindent[-1]:
+                         while cnt < curindent[-1]:
+                             print TK_DENDENT
+                             self.ENQUEUE(TK_DENDENT, None)
+                             # POP na identacao da pilha
+                             curindent[-1:] = []
+                             #print curindent
+                     # se a identacao for igual a identacao atual nao precisa fazer nada.
+                     import sys
+                     sys.stdout.write(' %d ' % (curindent[-1] / 4))
+
+      # linha completamente desidentada
+      "^{NOTWS}[^\n]*\n":
+                     while 0 < curindent[-1]:
+                         print TK_DENDENT
+                         self.ENQUEUE(TK_DENDENT, None)
+                         # POP na identacao da pilha
+                         curindent[-1:] = []
+                     self.POPSTATE()
+                     # coloca a linha de volta a pilha de entrada
+                     self.PUSHBACK(self.value)
+                     #print "retorna ao nivel 0 =================="
+                     return
+                     
+STRING_PEQ_DUL:
+   "[^\n\"]*":
+                     print "[[ entrou no estado ]]"
+                     return TK_STRING_PEQ_DUL
+
+   "\"":
+                     print "[[ saiu do estado ]]"
+                     self.POPSTATE()
+                     return TK_ASPDUL
+
+   "\n":
+                     print "Error: dentro de string simples nao pode ter quebra de linha!"
+                     return
+
+IDENTADO, NAOIDENTADO:
+
+    "def":     return "def"
+    "if":      return "if"
+    "while":   return "while"
+    "or":      return "or"
+    "xor":     return "xor"
+    "and":     return "and"
+    "in":      return "in"
+    "is":      return "is"
+    "not":     return "not"
+    "break":   return "break"
+    "assert":
+               raise "Nao implementado!"
+               return "assert"
+    "for":     return "for"
+    "raise":
+               raise "Nao implementado!"
+               return "raise"
+    "class":
+               raise "Nao implementado!"
+               return "class"
+    "continue":   return "continue"
+    "del":     return "del"
+    "except":
+               raise "Nao implementado!"
+               return "except"
+    "global":  return "global"
+    "import":  return "import"
+    "print":   return "print"
+    "return":  return "return"
+    "try":     return "try"
+    "False":   return "False"
+    "elif":    return "elif"
+    "else":    return "else"
+    "read_int": return "read_int"
+    "read_str": return "read_str"
+    "True":    return "True"
+    "None":    return "None"
+    "==":      return "=="
+    "\*\*":      return "**"
+    "=":      return "="
+    "\(":      return "("
+    "\)":      return ")"
+    "\{":      return "{"
+    "\}":      return "}"
+    "!=":      return "!="
+    "'":
+               self.PUSHSTATE(STRING_PEQ_SIM)
+               return TK_ASPSIM
+    "\"":
+                self.PUSHSTATE(STRING_PEQ_DUL)
+                print "[[ estado da aspa dupla ]]"
+                return TK_ASPDUL
+
+    "\+":       return '+'
+    "\-":       return '-'
+    "\*":       return '*'
+    "/":       return '/'
+    "\\":      return '\\'
+    "\%":      return '%'
+    "<<":      return '<<'
+    ">>":      return '>>'
+    ">=":      return ">="
+    "<=":      return "<="
+    "\|":      return "|"
+    "\&":      return "&"
+    ">":       return ">"
+    "<":       return "<"
+    ";":       return ";"
+    "\[":      return "["
+    "\]":      return "]"
+    "\.":      return "."
+    ",":       return ","
+    ":":       return ":"
+
+    "^{WS}?{COMENTARIO}?\n" :
+                     global lineno
+                     lineno += 1
+                     print TK_NEWLINE
+                     self.value = ""
+                     return TK_NEWLINE
+
+
+
+
+    "<<EOF>>" :
+                     global curindent
+                     """ Caso o fim  do  arquivo  seja  encontrado e  existam  ainda
+                         blocos de identacao em  aberto, desidenta  ateh a identacao
+                         inicial. Adicionando os  Tokens  de  desidentacao  a  pilha
+                         de leitura do Analizador Lexico o token <<EOF>> continua no
+                         final da pilha de leitura. A pilha quando  encontra o token
+                         <<EOF>> estah desse jeito:
+
+                             +---------+
+                             |         |
+                             +---------+
+                             |         |
+                             +---------+
+                             | <<EOF>> |
+                             +---------+
+
+                         Mas como existem blocos em aberto e damos  ENQUEUE em tokens
+                         DENDENT para fechar os blocos  pendentes, a  pilha  volta  a
+                         ficar cheia novamente e o token  <<EOF>> no  final  vai  ser
+                         chamado  novamente.  Ou  seja   este   bloco  irah  executar
+                         novamente quando o <<EOF>>  for  encontrado.  A  pilha  fica
+                         dessa forma:
+
+                             +---------+
+                             | DENDENT |
+                             +---------+
+                             | DENDENT |
+                             +---------+
+                             | <<EOF>> |
+                             +---------+
+
+                         Por isso devemos desempilhar todas as identacoes da pilha de
+                         identacoes  e  na  proxima  vez  que  o  token  <<EOF>>  for
+                         encontrado caso a  pilha de identacoes esteja  vazia o token
+                         especial $EOF$ deverah  ser retornado  indicando  o  fim  da
+                         analise lexica.
+                     """
+                     if len(curindent) > 1:
+                         for indentacao in curindent[1:]:
+                             print TK_DENDENT
+                             self.ENQUEUE(TK_DENDENT, None)
+                         curindent = [0]
+                     else:
+                         return '$EOF$'
+                     return
+
+    "{WS}" :
+                     return
+
+    "\n" :
+                     global lineno
+                     lineno += 1
+                     print TK_NEWLINE
+                     return TK_NEWLINE
+
+
+    "{COMENTARIO}\n" :
+                     global lineno
+                     lineno += 1
+                     print TK_NEWLINE
+                     self.value = ""
+                     return TK_NEWLINE
+
+    "{IDENTIFIER}":
+                     print TK_IDENTIFICADOR, ' -> ', self.value
+                     return TK_IDENTIFICADOR
+
+    "{INTEIRO}":
+                     print TK_INTEIRO, ' -> ', self.value
+                     return TK_INTEIRO
+
+
+
+
+
+

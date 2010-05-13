@@ -1,0 +1,15 @@
+#
+# Programinha de exemplo
+#
+valor = 23
+while 1 ==1:
+    valor = 1
+if valor == (0 == (1 == 2)):numDois="Bloco True";coisa=0;coisa=1
+else:
+    if 0==1:
+        final="Bloco False";nome="Rafael";
+        if 4==5: # codigo devidamente comentado
+            v = 1
+        else : teste = "estah funcionando!";#Sem problema nenhum
+        if 4 ==          4: pr = "bleza........................ %4$#@";
+    else: valor = "Rafael"

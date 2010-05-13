@@ -1,0 +1,332 @@
+
+code:
+     MP_None = "MP_None"
+     MP_Bool = "MP_Bool"
+     MP_Int  = "MP_Int"
+     MP_Str  = "MP_Str"
+
+     class Var(object):
+         def __init__(self,nome="",tipo=MP_None):
+             self.tipo = tipo
+             self.nome = nome
+             
+     class Buffer(object):
+         def __init__(self,out="",tipo=MP_None):
+             self.out = out
+             self.tipo = tipo
+         def __str__(self):
+             return "(%s|%s)" % (self.out,self.tipo)
+
+     class Pilha(object):
+         def __init__(self, fmt="%s", fmt_f=""):
+             self.qtd = 0
+             self.fmt = fmt
+             self.fmt_f = fmt_f
+
+         def proximo(self):
+             self.qtd += 1
+             return self.fmt % self.qtd
+             
+         def get(self):
+             return self.fmt % self.qtd
+
+         def fechar(self):
+             return self.fmt_f % self.qtd
+
+     out = ""
+     tabSimb = {}
+     pilhaIf = Pilha(fmt="if_ini_%s", fmt_f="if_fim_%s")
+     pilhaWhile = Pilha(fmt="while_ini_%s", fmt_f="while_fim_%s")
+
+file_input ->
+             ( TK_NEWLINE | statement )*  :
+                 print "-"*12, " IL gerado: "
+                 global out
+                 for stmt in kids[0]:
+                     if type(stmt[0]) is Buffer:
+                         out += stmt[0].out
+                 print out
+                 print "-"*25
+             ;
+
+statement ->
+             stmt_list TK_NEWLINE:
+                 return kids[0]
+             | compound_stmt:
+                 return kids[0]
+             ;
+
+stmt_list ->
+             simple_stmt (";" simple_stmt)* ( ";" )? :
+                 ret = Buffer(kids[0].out, MP_None)
+                 if len(kids[1]) > 0:
+                     for cmd in kids[1]:
+                        ret.out += cmd[1].out
+                 return ret
+             ;
+
+simple_stmt -> expression_stmt:
+                    return kids[0]
+                 | assignment_stmt:
+                    return kids[0]
+                 | print_stmt :
+                    return kids[0]
+             ;
+             
+print_stmt ->
+             "print" expression :
+                 if kids[1].tipo in (MP_Int, MP_Bool):
+                     kids[1].out += "call void [mscorlib]System.Console::WriteLine(int32)\n"
+                 else:
+                     kids[1].out += "call void [mscorlib]System.Console::WriteLine(string)\n"
+                 kids[1].tipo = MP_None
+                 return kids[1]
+             ;
+
+assignment_stmt ->
+             TK_IDENTIFICADOR "=" expression :
+                 global tabSimb
+                 ret = Buffer()
+                 if tabSimb.has_key(kids[0]) == False:
+                     tabSimb[kids[0]] = Var(kids[0], kids[2].tipo)
+                 if tabSimb[kids[0]].tipo == kids[2].tipo \
+                      or tabSimb[kids[0]].tipo == MP_None:
+                     ret.out = "%sstloc %s\n" % (kids[2].out, kids[0])
+                     tabSimb[kids[0]].tipo = kids[2].tipo
+                 elif tabSimb[kids[0]].tipo == MP_Bool \
+                       and kids[2].tipo == MP_Int:
+                     ret.out = "%sstloc %s\n" % (kids[2].out, kids[0])
+                 else:
+                     raise "Atribuicao de tipos incompativeis!"
+                 ret.tipo = MP_None
+                 return ret
+             ;
+
+expression ->
+             or_test:
+                 return kids[0]
+             ;
+or_test ->
+             and_test :
+                 return kids[0]
+             | or_test "or" and_test :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out = "%s\n%s\nor\n" % (kids[0].out, kids[2].out)
+                 return ret
+             ;
+
+and_test ->
+             not_test :
+                  return kids[0]
+             | and_test "and" not_test :
+                  ret = Buffer(tipo=MP_Bool)
+                  ret.out = "%s\n%s\nand\n" % (kids[0].out, kids[2].out)
+                  return ret
+             ;
+
+not_test ->
+             comparison :
+                 return kids[0]
+             | "not" not_test :
+                 ret = kids[1]
+                 ret.out += "not\n"
+                 return ret
+             ;
+
+comparison ->
+             or_expr ( comp_operator or_expr )* :
+                 ret = kids[0]
+                 if kids[1] != None:
+                     for expr_cmp in kids[1]:
+                         ret.out += "%s%s" % (expr_cmp[1].out, expr_cmp[0].out)
+                         ret.tipo = expr_cmp[0].tipo
+                 return kids[0]
+             ;
+
+or_expr ->
+             "None" :
+                 ret = Buffer(tipo=MP_None)
+                 ret.out = "ldnull\n"
+                 return ret
+             | a_expr :
+                 return kids[0]
+             ;
+
+a_expr ->
+             m_expr :
+                 return kids[0]
+             | a_expr "+" m_expr :
+                 ret = Buffer(tipo=MP_Int)
+                 ret.out = "%sconv.i4\n%sconv.i4\nadd\n" % (kids[0].out, kids[2].out)
+                 return ret
+             | a_expr "-" m_expr :
+                 ret = Buffer(tipo=MP_Int)
+                 ret.out = "%sconv.i4\n%sconv.i4\nsub\n" % (kids[0].out, kids[2].out)
+                 return ret
+             ;
+
+m_expr ->
+             u_expr :
+                 return kids[0]
+             | m_expr "*" u_expr :
+                 ret = Buffer(tipo=MP_Int)
+                 ret.out = "%sconv.i4\n%sconv.i4\nmul\n" % (kids[0].out, kids[2].out)
+                 return ret
+             | m_expr "/" u_expr :
+                 ret = Buffer(tipo=MP_Int)
+                 ret.out = "%sconv.i4\n%sconv.i4\ndiv\n" % (kids[0].out, kids[2].out)
+                 return ret
+             ;
+
+u_expr ->    parenth_form :
+                 return kids[0]
+             | "-" u_expr :
+                 ret = Buffer(tipo=MP_Int)
+                 ret.out = "%sconv.i4\nneg\n" % kids[1].out
+                 return ret
+             | primary :
+                 return kids[0]
+             | "read_int" :
+                 ret=Buffer(tipo=MP_Int)
+                 ret.out="call string [mscorlib]System.Console::ReadLine()\nldsflda valuetype CharArray8 Format\n"
+                 ret.out=ret.out+"ldloca aux_int\ncall vararg int32 sscanf(string,int8*,...,int32*)\nbrfalse erro_leint\nldloc aux_int\n"
+                 return ret
+             | "read_str" :
+                 ret=Buffer(tipo=MP_Str)
+                 ret.out="call string [mscorlib]System.Console::ReadLine()"
+                 return ret
+             ;
+
+parenth_form ->
+             "(" expression ")" :
+                 ret = kids[1]
+                 return ret
+             ;
+
+comp_operator ->
+             "<" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "clt\n"
+                 return ret
+             | ">" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "cgt\n"
+                 return ret
+             | "==" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "ceq\n"
+                 return ret
+             #| ">="
+             #| "<="
+             | "<>" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "ceq\nnot\n"
+                 return ret
+             | "!=" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "ceq\nnot\n"
+                 return ret
+             | "is" :
+                 ret = Buffer(tipo=MP_Bool)
+                 ret.out += "ceq\n"
+                 return ret
+             ;
+
+primary ->
+             atom :
+                 return kids[0]
+             #| slicing
+             #| subscription
+             ;
+
+atom ->
+             literal :
+                 return kids[0]
+             | TK_IDENTIFICADOR :
+                 global tabSimb
+                 ret = Buffer()
+                 if tabSimb.has_key(kids[0]) == False:
+                     print "Variavel ainda nao declarada!"
+                 else:
+                     ret.out = "ldloc %s\n" % kids[0]
+                 ret.tipo = tabSimb[kids[0]].tipo
+                 return ret
+             | "True" :
+                return Buffer(out="ldc.i4 1\n",tipo=MP_Bool)
+             | "False" :
+                return Buffer(out="ldc.i4 0\n",tipo=MP_Bool)
+             ;
+
+literal ->
+             stringliteral :
+                 return kids[0]
+             | TK_INTEIRO :
+                 return Buffer("ldc.i4 %s\n" % kids[0], MP_Int)
+             ;
+
+stringliteral ->
+             TK_ASPSIM TK_STRING_PEQ_SIM TK_ASPSIM :
+                 return Buffer("ldstr \"%s\"\n" % kids[1], MP_Str)
+
+             | TK_ASPDUL TK_STRING_PEQ_DUL? TK_ASPDUL :
+                 if kids[1] == None: 
+                     kids[1] = ""
+                 return Buffer("ldstr \"%s\"\n" % kids[1], MP_Str)
+             ;
+
+compound_stmt ->
+             if_stmt :
+                 return kids[0]
+             | while_stmt :
+                 return kids[0]
+                #| funcdef
+             ;
+
+if_stmt ->
+             "if" expression suite ("else" suite)? :
+                global pinhaIf
+                ret = Buffer()
+                ret.out = "%sbrtrue %s\n" % (kids[1].out, pilhaIf.proximo())
+                # codigo do else aqui
+                if kids[3] != None:
+                    ret.out += kids[3][1].out
+                ret.out += "br %s\n%s:\n%s%s:\n" % (pilhaIf.fechar(), 
+                                                    pilhaIf.get(),
+                                                    kids[2].out,
+                                                    pilhaIf.fechar())
+                return ret
+             ;
+             
+while_stmt -> "while" expression suite :
+                global pilhaWhile
+                ret = Buffer()
+                ret.out = "%s:\n%sbrfalse %s\n%sbr %s\n%s:\n" % (pilhaWhile.proximo(),
+                                                 kids[1].out,
+                                                 pilhaWhile.fechar(),
+                                                 kids[2].out,
+                                                 pilhaWhile.get(), 
+                                                 pilhaWhile.fechar())
+                return ret
+             ;
+
+suite ->
+              ":" stmt_list TK_NEWLINE :
+                  return kids[1]
+              | TK_INDENT (statement | TK_NEWLINE)+ TK_DENDENT :
+                  ret = Buffer(tipo=MP_None)
+                  for token in kids[1]:
+                      for stmt in token:
+                          if type(stmt) is Buffer:
+                             ret.out += stmt.out
+                  return ret
+              ;
+
+
+
+
+
+
+                
+                
+                
+

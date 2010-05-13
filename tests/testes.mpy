@@ -1,0 +1,28 @@
+
+contador=0
+# Programa que conta... :P
+while contador < 10:
+    print "O contador esta no numero:"
+    print contador
+    if contador < 5:
+        print "Ainda menor que cinco..."
+    else:
+        print "Jah esta maior que cinco......"
+        if 2 > 1:
+            print "E maior, claro!"
+            if 1>0:
+                print "claro que sim... ¬¬"
+    contador = contador + 1
+print "sempreeeeeeeeeeeeeeeeee..."
+if contador == 10:
+    print "FINAL"
+casa = read_int
+print casa
+if casa > 10:
+    print "maior"
+else:
+    print "menor"
+print casa
+print contador*(11-1)
+
+

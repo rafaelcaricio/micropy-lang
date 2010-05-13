@@ -1,0 +1,26 @@
+#
+# Tirar a media
+#
+print "Digite sua nota da AV1:"; av1 = read_int
+print "Digite sua nota da AV2:"; av2 = read_int
+print av1 or av2
+media = ((av1+av2*av2*av2)/2)
+#print media
+if media > 7:
+    print "Aprovado!"
+else:
+    print "Voce foi para a AV3? (s/n)";resp=read_str
+    if resp=="s":
+        print "Voce foi para a AV3 digite sua nota:";av3 = read_int
+
+        if av1 > av2:
+            if av3 > av2:
+                av2 = av3
+        else:
+            if av3 > av1:
+                av1 = av3
+    media = ((((av1+av2)/2)))
+    if media > 7:
+        print "Aprovado!"
+
+

@@ -1,0 +1,9 @@
+temp=2;coisa=2#Testando o compiladorrrrr!!!
+if(temp>1):print"BORA TERMINAR!!!";
+else:print"EHHH ISSO AEWWW!"#complicandoOcodigo
+temp=temp+1;print"teste";#cadavezMaisComplexo
+if(coisa+temp>3)==True:print"tres eh maior"#TesteDeCarga
+if(temp>2):print"EH MAIOR!!!";print(True)
+print((((((4+3))))*(6))/(2));print"hoooooo hooo hooo"
+c            =         1
+while(c<10):print c;c=c+1
